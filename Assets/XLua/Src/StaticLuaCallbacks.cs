@@ -645,6 +645,18 @@ namespace XLua
 #endif
 
         [MonoPInvokeCallback(typeof(LuaCSFunction))]
+        internal static int LoadCJson(RealStatePtr L)
+        {
+            return LuaAPI.luaopen_cjson(L);
+        }
+
+        [MonoPInvokeCallback(typeof(LuaCSFunction))]
+        internal static int LoadUtf8(RealStatePtr L)
+        {
+            return LuaAPI.luaopen_utf8(L);
+        }
+
+        [MonoPInvokeCallback(typeof(LuaCSFunction))]
         internal static int LoadCS(RealStatePtr L)
         {
             LuaAPI.xlua_pushasciistring(L, LuaEnv.CSHARP_NAMESPACE);

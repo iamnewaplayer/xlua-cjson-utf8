@@ -460,6 +460,11 @@ namespace XLua.LuaDLL
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern int luaopen_socket_core(IntPtr L);//[,,m]
 #endif
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int luaopen_cjson(IntPtr L);//[,,m]
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int luaopen_utf8(IntPtr L);//[,,m]
 
         [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
         public static extern void lua_pushint64(IntPtr L, long n);//[,,m]
@@ -595,5 +600,11 @@ namespace XLua.LuaDLL
             xlua_set_csharp_wrapper_caller(Marshal.GetFunctionPointerForDelegate(wrapper_caller));
         }
 #endif
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int xlua_cjson_encode(IntPtr L, int index);
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int xlua_cjson_decode(IntPtr L);
     }
 }

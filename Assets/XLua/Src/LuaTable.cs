@@ -29,6 +29,60 @@ namespace XLua
         {
         }
 
+        /// <summary>
+        /// Create a LuaTable from a JSON string.
+        /// This uses C-side cjson for efficient parsing without C# overhead.
+        /// Note: This does NOT affect the standard Lua cjson module or any existing Lua code.
+        /// </summary>
+        /// <param name="json">JSON string to parse (e.g., "{\"a\":1, \"b\":\"hello\"}")</param>
+        /// <param name="luaenv">LuaEnv instance to create the table in</param>
+        /// <exception cref="Exception">Thrown if JSON parsing fails</exception>
+        /// <example>
+        /// var table = new LuaTable("{\"a\":1, \"b\":\"hello\"}", luaEnv);
+        /// int a = table.Get&lt;int&gt;("a");  // Returns 1
+        /// </example>
+        public LuaTable(string json, LuaEnv luaenv) : base(CreateTableFromJson(json, luaenv), luaenv)
+        {
+        }
+
+        /// <summary>
+        /// Helper method to create a Lua table reference from JSON string.
+        /// Called before base constructor to properly initialize the readonly luaReference field.
+        /// </summary>
+        private static int CreateTableFromJson(string json, LuaEnv luaenv)
+        {
+#if THREAD_SAFE || HOTFIX_ENABLE
+            lock (luaenv.luaEnvLock)
+            {
+#endif
+                var L = luaenv.L;
+                int oldTop = LuaAPI.lua_gettop(L);
+                try
+                {
+                    // Push JSON string and decode it to a Lua table
+                    LuaAPI.lua_pushstring(L, json);
+                    if (0 != LuaAPI.xlua_cjson_decode(L))
+                    {
+                        // Error - pcall returns non-zero on error
+                        string err = LuaAPI.lua_tostring(L, -1);
+                        LuaAPI.lua_settop(L, oldTop);
+                        throw new Exception("cjson decode error: " + err);
+                    }
+                    // Success, table is at top - create a reference to it
+                    int refId = LuaAPI.luaL_ref(L);
+                    LuaAPI.lua_settop(L, oldTop);
+                    return refId;
+                }
+                catch
+                {
+                    LuaAPI.lua_settop(L, oldTop);
+                    throw;
+                }
+#if THREAD_SAFE || HOTFIX_ENABLE
+            }
+#endif
+        }
+
         // no boxing version get
         public void Get<TKey, TValue>(TKey key, out TValue value)
         {
@@ -385,6 +439,53 @@ namespace XLua
         public override string ToString()
         {
             return "table :" + luaReference;
+        }
+
+        /// <summary>
+        /// Convert this LuaTable to a JSON string.
+        /// This uses C-side cjson for efficient encoding without C# overhead.
+        /// 
+        /// Features:
+        /// - Automatically skips unsupported types (functions, userdata, etc.)
+        /// - Converts boolean keys to "0" (false) or "1" (true)
+        /// - Does NOT affect the standard Lua cjson module or any existing Lua code
+        /// 
+        /// Note: If the table contains metatables with functions, those functions will be skipped.
+        /// </summary>
+        /// <returns>JSON string representation of the table</returns>
+        /// <exception cref="Exception">Thrown if JSON encoding fails</exception>
+        /// <example>
+        /// var table = new LuaTable("{\"a\":1, \"b\":\"hello\"}", luaEnv);
+        /// string json = table.ToJson();  // Returns: {"a":1,"b":"hello"}
+        /// </example>
+        public string ToJson()
+        {
+#if THREAD_SAFE || HOTFIX_ENABLE
+            lock (luaEnv.luaEnvLock)
+            {
+#endif
+                var L = luaEnv.L;
+                int oldTop = LuaAPI.lua_gettop(L);
+                
+                // Push the table onto the stack and encode it
+                LuaAPI.lua_getref(L, luaReference);
+                if (0 == LuaAPI.xlua_cjson_encode(L, -1))
+                {
+                    // Success - pcall returns 0 on success, string is at top
+                    string json = LuaAPI.lua_tostring(L, -1);
+                    LuaAPI.lua_settop(L, oldTop);
+                    return json;
+                }
+                else
+                {
+                    // Error - pcall returns non-zero on error
+                    string err = LuaAPI.lua_tostring(L, -1);
+                    LuaAPI.lua_settop(L, oldTop);
+                    throw new Exception("cjson encode error: " + err);
+                }
+#if THREAD_SAFE || HOTFIX_ENABLE
+            }
+#endif
         }
     }
 }

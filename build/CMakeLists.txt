@@ -106,11 +106,33 @@ set ( LUA_SOCKET
     luasocket/udp.c 
 )
 
+set ( LUA_CJSON
+    lua-cjson/lua_cjson.c
+    lua-cjson/fpconv.c
+    lua-cjson/strbuf.c
+)
+
+# 只有在Lua版本小于5.3时才包含外部的UTF8库（Lua 5.3及以上版本已内置）
+if(LUA_VERSION VERSION_LESS "5.3")
+    set ( LUA_UTF8
+        luautf8/lutf8lib.c
+    )
+else()
+    set ( LUA_UTF8
+        # Lua 5.3及以上版本已内置UTF8库，不需要额外包含
+    )
+endif()
+
 if ( WIN32 AND NOT CYGWIN )
     list (APPEND LUA_SOCKET luasocket/wsocket.c)
 else ( )
     list (APPEND LUA_SOCKET luasocket/usocket.c)
 endif ( )
+
+include_directories(
+    ${CMAKE_SOURCE_DIR}/build/lua-cjson
+    ${CMAKE_SOURCE_DIR}/build/luautf8
+)
 
 set ( XLUA_CORE
     i64lib.c
@@ -139,6 +161,8 @@ macro(source_group_by_dir proj_dir source_files)
 endmacro(source_group_by_dir)
 
 source_group_by_dir(${CMAKE_CURRENT_SOURCE_DIR} LUA_SOCKET)
+source_group_by_dir(${CMAKE_CURRENT_SOURCE_DIR} LUA_CJSON)
+source_group_by_dir(${CMAKE_CURRENT_SOURCE_DIR} LUA_UTF8)
 source_group_by_dir(${CMAKE_CURRENT_SOURCE_DIR} LUA_CORE)
 source_group_by_dir(${CMAKE_CURRENT_SOURCE_DIR} LUA_LIB)
 source_group_by_dir(${CMAKE_CURRENT_SOURCE_DIR} XLUA_CORE)
@@ -151,6 +175,8 @@ if (APPLE)
            ${LUA_CORE}
            ${LUA_LIB}
            ${LUA_SOCKET}
+           ${LUA_CJSON}
+           ${LUA_UTF8}
            ${XLUA_CORE}
            ${THIRDPART_SRC}
         )
@@ -164,6 +190,8 @@ if (APPLE)
                 ${LUA_CORE}
                 ${LUA_LIB}
                 ${LUA_SOCKET}
+                ${LUA_CJSON}
+                ${LUA_UTF8}
                 ${XLUA_CORE}
                 ${THIRDPART_SRC}
             )
@@ -173,6 +201,8 @@ if (APPLE)
                 ${LUA_CORE}
                 ${LUA_LIB}
                 ${LUA_SOCKET}
+                ${LUA_CJSON}
+                ${LUA_UTF8}
                 ${XLUA_CORE}
                 ${THIRDPART_SRC}
             )
@@ -185,6 +215,8 @@ elseif ("${CMAKE_SYSTEM_NAME}" STREQUAL "Switch")
     add_library(xlua STATIC
         ${LUA_CORE}
         ${LUA_LIB}
+        ${LUA_CJSON}
+        ${LUA_UTF8}
         ${XLUA_CORE}
         ${THIRDPART_SRC}
     )
@@ -194,6 +226,8 @@ else ( )
         ${LUA_CORE}
         ${LUA_LIB}
         ${LUA_SOCKET}
+        ${LUA_CJSON}
+        ${LUA_UTF8}
         ${XLUA_CORE}
         ${THIRDPART_SRC}
     )
@@ -216,6 +250,20 @@ set_property(
 	APPEND
 	PROPERTY COMPILE_DEFINITIONS
 	LUA_COMPAT_APIINTCASTS LUA_LIB _CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS
+)
+
+set_property(
+	SOURCE ${LUA_CJSON}
+	APPEND
+	PROPERTY COMPILE_DEFINITIONS
+	LUA_COMPAT_APIINTCASTS LUA_LIB _CRT_SECURE_NO_WARNINGS
+)
+
+set_property(
+	SOURCE ${LUA_UTF8}
+	APPEND
+	PROPERTY COMPILE_DEFINITIONS
+	LUA_COMPAT_APIINTCASTS LUA_LIB _CRT_SECURE_NO_WARNINGS
 )
 
 if(UINT_ESPECIALLY)

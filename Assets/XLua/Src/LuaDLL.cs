@@ -394,13 +394,21 @@ namespace XLua.LuaDLL
 			lua_rawget(L, LuaIndexes.LUA_REGISTRYINDEX);
 		}
 
-        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
-        public static extern int xluaL_loadbuffer(IntPtr L, byte[] buff, int size, string name);
 
         public static int luaL_loadbuffer(IntPtr L, string buff, string name)//[-0, +1, m]
         {
             byte[] bytes = Encoding.UTF8.GetBytes(buff);
             return xluaL_loadbuffer(L, bytes, bytes.Length, name);
+        }
+
+        [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
+        public static extern int xluaL_loadbuffer(IntPtr L, byte[] buff, int size, byte[] names);
+
+
+        public static int xluaL_loadbuffer(IntPtr L, byte[] buff, int size, string name)
+        {
+            var names = Encoding.UTF8.GetBytes(name);//FIX: 中文名称乱码，需要转为byte[]给LUA
+            return xluaL_loadbuffer(L, buff, size, names);
         }
 
 		[DllImport(LUADLL,CallingConvention=CallingConvention.Cdecl)]
